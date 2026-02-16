@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Jogo clássico de tabuleiro Trilha (Nine Men's Morris) para dois jogadores">
+    <meta name="theme-color" content="#667eea">
+    <title>Jogo da Trilha</title>
+    
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Trilha">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .player-info {
+            background: #f5f5f5;
+            padding: 15px 25px;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 150px;
+        }
+
+        .player-info.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: scale(1.05);
+            transition: all 0.3s;
+        }
+
+        .player-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .pieces-count {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .game-board {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        #board {
+            position: relative;
+            width: 400px;
+            height: 400px;
+        }
+
+        .board-lines {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .position {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: white;
+            border: 3px solid #333;
+            border-radius: 50%;
+            cursor: pointer;
+            transform: translate(-50%, -50%);
+            transition: all 0.2s;
+            z-index: 10;
+        }
+
+        .position:hover {
+            transform: translate(-50%, -50%) scale(1.2);
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.5);
+        }
+
+        .position.highlight {
+            background: #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+        }
+
+        .position.selected {
+            background: #90EE90;
+            box-shadow: 0 0 20px rgba(144, 238, 144, 0.8);
+        }
+
+        .piece {
+            position: absolute;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            transition: all 0.3s;
+        }
+
+        .piece.player1 {
+            background: radial-gradient(circle at 30% 30%, #4169E1, #1e3a8a);
+            border: 2px solid #1e3a8a;
+        }
+
+        .piece.player2 {
+            background: radial-gradient(circle at 30% 30%, #DC143C, #8b0000);
+            border: 2px solid #8b0000;
+        }
+
+        .message {
+            text-align: center;
+            font-size: 1.2em;
+            color: #333;
+            min-height: 30px;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .rules {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .rules h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .rules ul {
+            margin-left: 20px;
+        }
+
+        .rules li {
+            margin: 5px 0;
+        }
+
+        .install-prompt {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 15px 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            display: none;
+            align-items: center;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .install-prompt.show {
+            display: flex;
+        }
+
+        .install-prompt button {
+            padding: 8px 20px;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 600px) {
+            #board {
+                width: 300px;
+                height: 300px;
+            }
+            
+            .position {
+                width: 24px;
+                height: 24px;
+            }
+            
+            .piece {
+                width: 20px;
+                height: 20px;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Jogo da Trilha 🎯</h1>
+        
+        <div class="game-info">
+            <div class="player-info active" id="player1-info">
+                <div class="player-name">🔵 Jogador 1 (Azul)</div>
+                <div class="pieces-count">Peças: <span id="player1-pieces">9</span> | No tabuleiro: <span id="player1-board">0</span></div>
+            </div>
+            <div class="player-info" id="player2-info">
+                <div class="player-name">🔴 Jogador 2 (Vermelho)</div>
+                <div class="pieces-count">Peças: <span id="player2-pieces">9</span> | No tabuleiro: <span id="player2-board">0</span></div>
+            </div>
+        </div>
+
+        <div class="message" id="message">Jogador 1: Coloque uma peça no tabuleiro</div>
+
+        <div class="game-board">
+            <div id="board">
+                <svg class="board-lines" viewBox="0 0 400 400">
+                    <rect x="50" y="50" width="300" height="300" fill="none" stroke="#333" stroke-width="3"/>
+                    <rect x="100" y="100" width="200" height="200" fill="none" stroke="#333" stroke-width="3"/>
+                    <rect x="150" y="150" width="100" height="100" fill="none" stroke="#333" stroke-width="3"/>
+                    <line x1="200" y1="50" x2="200" y2="150" stroke="#333" stroke-width="3"/>
+                    <line x1="200" y1="250" x2="200" y2="350" stroke="#333" stroke-width="3"/>
+                    <line x1="50" y1="200" x2="150" y2="200" stroke="#333" stroke-width="3"/>
+                    <line x1="250" y1="200" x2="350" y2="200" stroke="#333" stroke-width="3"/>
+                </svg>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="resetGame()">🔄 Reiniciar Jogo</button>
+            <button onclick="toggleRules()">📖 Regras</button>
+        </div>
+
+        <div class="rules" id="rules" style="display: none;">
+            <h3>Como Jogar:</h3>
+            <ul>
+                <li><strong>Fase 1 - Colocação:</strong> Jogadores alternam colocando suas 9 peças no tabuleiro</li>
+                <li><strong>Fase 2 - Movimento:</strong> Mova suas peças para posições adjacentes vazias</li>
+                <li><strong>Formar Trilha:</strong> Alinhe 3 peças em linha reta para capturar uma peça adversária</li>
+                <li><strong>Vitória:</strong> Reduza o adversário a 2 peças ou bloqueie todos seus movimentos</li>
+                <li><strong>Regra Especial:</strong> Com 3 peças, você pode "voar" para qualquer posição vazia</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="install-prompt" id="install-prompt">
+        <span>📱 Instalar o Jogo da Trilha no seu dispositivo?</span>
+        <button onclick="installApp()">Instalar</button>
+        <button onclick="dismissInstall()">Agora não</button>
+    </div>
+
+    <script>
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('Service Worker registrado', reg))
+                .catch(err => console.log('Erro ao registrar Service Worker', err));
+        }
+
+        // PWA Install Prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('install-prompt').classList.add('show');
+        });
+
+        function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    deferredPrompt = null;
+                    document.getElementById('install-prompt').classList.remove('show');
+                });
+            }
+        }
+
+        function dismissInstall() {
+            document.getElementById('install-prompt').classList.remove('show');
+        }
+
+        // Game Logic
+        const positions = [
+            { x: 50, y: 50, id: 0 }, { x: 200, y: 50, id: 1 }, { x: 350, y: 50, id: 2 },
+            { x: 350, y: 200, id: 3 }, { x: 350, y: 350, id: 4 }, { x: 200, y: 350, id: 5 },
+            { x: 50, y: 350, id: 6 }, { x: 50, y: 200, id: 7 }, { x: 100, y: 100, id: 8 },
+            { x: 200, y: 100, id: 9 }, { x: 300, y: 100, id: 10 }, { x: 300, y: 200, id: 11 },
+            { x: 300, y: 300, id: 12 }, { x: 200, y: 300, id: 13 }, { x: 100, y: 300, id: 14 },
+            { x: 100, y: 200, id: 15 }, { x: 150, y: 150, id: 16 }, { x: 200, y: 150, id: 17 },
+            { x: 250, y: 150, id: 18 }, { x: 250, y: 200, id: 19 }, { x: 250, y: 250, id: 20 },
+            { x: 200, y: 250, id: 21 }, { x: 150, y: 250, id: 22 }, { x: 150, y: 200, id: 23 }
+        ];
+
+        const adjacency = {
+            0: [1, 7], 1: [0, 2, 9], 2: [1, 3], 3: [2, 4, 11],
+            4: [3, 5], 5: [4, 6, 13], 6: [5, 7], 7: [0, 6, 15],
+            8: [9, 15], 9: [1, 8, 10, 17], 10: [9, 11], 11: [3, 10, 12, 19],
+            12: [11, 13], 13: [5, 12, 14, 21], 14: [13, 15], 15: [7, 8, 14, 23],
+            16: [17, 23], 17: [9, 16, 18], 18: [17, 19], 19: [11, 18, 20],
+            20: [19, 21], 21: [13, 20, 22], 22: [21, 23], 23: [15, 16, 22]
+        };
+
+        const mills = [
+            [0, 1, 2], [2, 3, 4], [4, 5, 6], [6, 7, 0],
+            [8, 9, 10], [10, 11, 12], [12, 13, 14], [14, 15, 8],
+            [16, 17, 18], [18, 19, 20], [20, 21, 22], [22, 23, 16],
+            [1, 9, 17], [3, 11, 19], [5, 13, 21], [7, 15, 23]
+        ];
+
+        let gameState = {
+            board: Array(24).fill(null),
+            currentPlayer: 1,
+            phase: 'placing',
+            piecesToPlace: { 1: 9, 2: 9 },
+            piecesOnBoard: { 1: 0, 2: 0 },
+            selectedPosition: null,
+            removingPiece: false
+        };
+
+        function initBoard() {
+            const board = document.getElementById('board');
+            positions.forEach(pos => {
+                const posDiv = document.createElement('div');
+                posDiv.className = 'position';
+                posDiv.style.left = pos.x + 'px';
+                posDiv.style.top = pos.y + 'px';
+                posDiv.dataset.id = pos.id;
+                posDiv.onclick = () => handlePositionClick(pos.id);
+                board.appendChild(posDiv);
+            });
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            document.getElementById('player1-pieces').textContent = gameState.piecesToPlace[1];
+            document.getElementById('player2-pieces').textContent = gameState.piecesToPlace[2];
+            document.getElementById('player1-board').textContent = gameState.piecesOnBoard[1];
+            document.getElementById('player2-board').textContent = gameState.piecesOnBoard[2];
+            document.getElementById('player1-info').classList.toggle('active', gameState.currentPlayer === 1);
+            document.getElementById('player2-info').classList.toggle('active', gameState.currentPlayer === 2);
+            
+            positions.forEach(pos => {
+                const posDiv = document.querySelector(`[data-id="${pos.id}"]`);
+                posDiv.innerHTML = '';
+                posDiv.classList.remove('highlight', 'selected');
+                
+                if (gameState.board[pos.id]) {
+                    const piece = document.createElement('div');
+                    piece.className = `piece player${gameState.board[pos.id]}`;
+                    posDiv.appendChild(piece);
+                }
+                
+                if (gameState.selectedPosition === pos.id) {
+                    posDiv.classList.add('selected');
+                }
+            });
+            
+            updateMessage();
+        }
+
+        function updateMessage() {
+            const msg = document.getElementById('message');
+            const player = gameState.currentPlayer === 1 ? '🔵 Jogador 1' : '🔴 Jogador 2';
+            
+            if (gameState.removingPiece) {
+                msg.textContent = `${player}: Remova uma peça do adversário`;
+            } else if (gameState.phase === 'placing') {
+                msg.textContent = `${player}: Coloque uma peça no tabuleiro`;
+            } else {
+                const pieces = gameState.piecesOnBoard[gameState.currentPlayer];
+                if (pieces === 3) {
+                    msg.textContent = `${player}: Selecione sua peça para mover (pode voar!)`;
+                } else {
+                    msg.textContent = `${player}: Selecione sua peça para mover`;
+                }
+            }
+        }
+
+        function checkMill(position, player) {
+            return mills.some(mill => mill.includes(position) && mill.every(pos => gameState.board[pos] === player));
+        }
+
+        function isInMill(position) {
+            const player = gameState.board[position];
+            if (!player) return false;
+            return checkMill(position, player);
+        }
+
+        function getValidMoves(from) {
+            const player = gameState.board[from];
+            const pieces = gameState.piecesOnBoard[player];
+            if (pieces === 3) {
+                return gameState.board.map((p, i) => p === null ? i : null).filter(i => i !== null);
+            }
+            return adjacency[from].filter(pos => gameState.board[pos] === null);
+        }
+
+        function handlePositionClick(posId) {
+            if (gameState.removingPiece) {
+                const opponent = gameState.currentPlayer === 1 ? 2 : 1;
+                if (gameState.board[posId] === opponent) {
+                    const opponentPieces = gameState.board.map((p, i) => p === opponent ? i : null).filter(i => i !== null);
+                    const allInMills = opponentPieces.every(pos => isInMill(pos));
+                    
+                    if (!isInMill(posId) || allInMills) {
+                        gameState.board[posId] = null;
+                        gameState.piecesOnBoard[opponent]--;
+                        gameState.removingPiece = false;
+                        
+                        if (gameState.piecesOnBoard[opponent] === 2) {
+                            setTimeout(() => {
+                                alert(`🎉 Jogador ${gameState.currentPlayer} venceu!`);
+                                resetGame();
+                            }, 100);
+                            return;
+                        }
+                        
+                        switchPlayer();
+                        updateDisplay();
+                    } else {
+                        alert('Você não pode remover uma peça que está em uma trilha!');
+                    }
+                }
+                return;
+            }
+            
+            if (gameState.phase === 'placing') {
+                if (gameState.board[posId] === null) {
+                    gameState.board[posId] = gameState.currentPlayer;
+                    gameState.piecesToPlace[gameState.currentPlayer]--;
+                    gameState.piecesOnBoard[gameState.currentPlayer]++;
+                    
+                    if (checkMill(posId, gameState.currentPlayer)) {
+                        gameState.removingPiece = true;
+                    } else {
+                        switchPlayer();
+                    }
+                    
+                    if (gameState.piecesToPlace[1] === 0 && gameState.piecesToPlace[2] === 0) {
+                        gameState.phase = 'moving';
+                    }
+                    
+                    updateDisplay();
+                }
+            } else if (gameState.phase === 'moving') {
+                if (gameState.board[posId] === gameState.currentPlayer && gameState.selectedPosition === null) {
+                    gameState.selectedPosition = posId;
+                    const validMoves = getValidMoves(posId);
+                    validMoves.forEach(movePos => {
+                        document.querySelector(`[data-id="${movePos}"]`).classList.add('highlight');
+                    });
+                    updateDisplay();
+                } else if (gameState.selectedPosition !== null && gameState.board[posId] === null) {
+                    const validMoves = getValidMoves(gameState.selectedPosition);
+                    if (validMoves.includes(posId)) {
+                        gameState.board[posId] = gameState.currentPlayer;
+                        gameState.board[gameState.selectedPosition] = null;
+                        gameState.selectedPosition = null;
+                        document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+                        
+                        if (checkMill(posId, gameState.currentPlayer)) {
+                            gameState.removingPiece = true;
+                        } else {
+                            switchPlayer();
+                        }
+                        updateDisplay();
+                    }
+                } else if (posId === gameState.selectedPosition) {
+                    gameState.selectedPosition = null;
+                    document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+                    updateDisplay();
+                }
+            }
+        }
+
+        function switchPlayer() {
+            gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+            if (gameState.phase === 'moving') {
+                const currentPieces = gameState.board.map((p, i) => p === gameState.currentPlayer ? i : null).filter(i => i !== null);
+                const canMove = currentPieces.some(pos => getValidMoves(pos).length > 0);
+                
+                if (!canMove && gameState.piecesOnBoard[gameState.currentPlayer] > 3) {
+                    setTimeout(() => {
+                        const winner = gameState.currentPlayer === 1 ? 2 : 1;
+                        alert(`🎉 Jogador ${winner} venceu! O adversário não tem movimentos válidos.`);
+                        resetGame();
+                    }, 100);
+                }
+            }
+        }
+
+        function resetGame() {
+            gameState = {
+                board: Array(24).fill(null),
+                currentPlayer: 1,
+                phase: 'placing',
+                piecesToPlace: { 1: 9, 2: 9 },
+                piecesOnBoard: { 1: 0, 2: 0 },
+                selectedPosition: null,
+                removingPiece: false
+            };
+            document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+            updateDisplay();
+        }
+
+        function toggleRules() {
+            const rules = document.getElementById('rules');
+            rules.style.display = rules.style.display === 'none' ? 'block' : 'none';
+        }
+
+        initBoard();
+    </script>
+</body>
+</html>
